@@ -92,54 +92,6 @@ class CrossInteraction(nn.Module):
         return hv_out, i_out
 
 
-class CrossTransformerInteraction(nn.Module):
-    def __init__(self, channels, pool_size=8, num_heads=None, dropout=0.0):
-        super().__init__()
-        self.pool_size = pool_size
-        if num_heads is None:
-            num_heads = max(1, min(8, channels // 8))
-            if channels % num_heads != 0:
-                num_heads = 1
-
-        self.norm_hv = nn.LayerNorm(channels)
-        self.norm_i = nn.LayerNorm(channels)
-        self.attn_hv = nn.MultiheadAttention(channels, num_heads, dropout=dropout, batch_first=True)
-        self.attn_i = nn.MultiheadAttention(channels, num_heads, dropout=dropout, batch_first=True)
-        self.out_hv = nn.Conv2d(channels, channels, kernel_size=1, padding=0, bias=True)
-        self.out_i = nn.Conv2d(channels, channels, kernel_size=1, padding=0, bias=True)
-        self.gamma_hv = nn.Parameter(torch.zeros(1))
-        self.gamma_i = nn.Parameter(torch.zeros(1))
-
-    def _pool_tokens(self, x):
-        b, c, h, w = x.shape
-        ph = min(self.pool_size, h)
-        pw = min(self.pool_size, w)
-        pooled = F.adaptive_avg_pool2d(x, (ph, pw))
-        tokens = pooled.flatten(2).transpose(1, 2)
-        return tokens, (ph, pw)
-
-    def forward(self, hv_feat, i_feat):
-        b, c, h, w = hv_feat.shape
-        hv_tokens, (ph, pw) = self._pool_tokens(hv_feat)
-        i_tokens, _ = self._pool_tokens(i_feat)
-
-        hv_tokens = self.norm_hv(hv_tokens)
-        i_tokens = self.norm_i(i_tokens)
-
-        hv_attn, _ = self.attn_hv(hv_tokens, i_tokens, i_tokens, need_weights=False)
-        i_attn, _ = self.attn_i(i_tokens, hv_tokens, hv_tokens, need_weights=False)
-
-        hv_attn = hv_attn.transpose(1, 2).reshape(b, c, ph, pw)
-        i_attn = i_attn.transpose(1, 2).reshape(b, c, ph, pw)
-
-        hv_attn = F.interpolate(hv_attn, size=(h, w), mode="bilinear", align_corners=False)
-        i_attn = F.interpolate(i_attn, size=(h, w), mode="bilinear", align_corners=False)
-
-        hv_out = hv_feat + self.gamma_hv * self.out_hv(hv_attn)
-        i_out = i_feat + self.gamma_i * self.out_i(i_attn)
-        return hv_out, i_out
-
-
 class HVIDualNAF(nn.Module):
     def __init__(
         self,
@@ -172,7 +124,7 @@ class HVIDualNAF(nn.Module):
         for num in enc_blk_nums:
             self.hv_encoders.append(nn.Sequential(*[NAFBlock(channels) for _ in range(num)]))
             self.i_encoders.append(nn.Sequential(*[NAFBlock(channels) for _ in range(num)]))
-            self.cims.append(CrossTransformerInteraction(channels))
+            self.cims.append(CrossInteraction(channels))
             self.hv_downs.append(nn.Conv2d(channels, 2 * channels, kernel_size=2, stride=2))
             self.i_downs.append(nn.Conv2d(channels, 2 * channels, kernel_size=2, stride=2))
             channels *= 2
