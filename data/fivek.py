@@ -21,6 +21,8 @@ class FiveKDatasetFromFolder(data.Dataset):
         folder2= self.data_dir+'/target'
         data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
         data_filenames2 = [join(folder2, x) for x in listdir(folder2) if is_image_file(x)]
+        data_filenames.sort()
+        data_filenames2.sort()
 
 
         im1 = load_img(data_filenames[index])

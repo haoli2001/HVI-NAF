@@ -83,8 +83,8 @@ def metrics(im_dir, label_dir, use_GT_mean):
             name = item.split('/')[-1]
             
         im2 = Image.open(os.path.join(label_dir, name)).convert('RGB')
-        (h, w) = im2.size
-        im1 = im1.resize((h, w))  
+        (w, h) = im2.size
+        im1 = im1.resize((w, h))  
         im1 = np.array(im1) 
         im2 = np.array(im2)
         

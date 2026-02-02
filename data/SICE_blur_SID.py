@@ -29,6 +29,8 @@ class LOLBlurDatasetFromFolder(data.Dataset):
                 continue
             data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
             data_filenames2 = [join(folder2, x) for x in listdir(folder2) if is_image_file(x)]
+            data_filenames.sort()
+            data_filenames2.sort()
             num = len(data_filenames)
             if num != 0: break
         index1 = random.randint(1,num)
@@ -67,6 +69,8 @@ class SIDDatasetFromFolder(data.Dataset):
             if os.path.exists(folder): 
                 data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
                 data_filenames2 = [join(folder2, x) for x in listdir(folder2) if is_image_file(x)]
+                data_filenames.sort()
+                data_filenames2.sort()
                 num = len(data_filenames)
                 break
             else:
@@ -110,6 +114,7 @@ class SICEDatasetFromFolder(data.Dataset):
             data_gt = join(train+'/label', fill_index+'.JPG')
             if os.path.exists(folder): 
                 data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
+                data_filenames.sort()
                 num = len(data_filenames)
                 break
             else:

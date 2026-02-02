@@ -23,6 +23,8 @@ class LOLDatasetFromFolder(data.Dataset):
         folder2= self.data_dir+'/high'
         data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
         data_filenames2 = [join(folder2, x) for x in listdir(folder2) if is_image_file(x)]
+        data_filenames.sort()
+        data_filenames2.sort()
         num = len(data_filenames)
 
         im1 = load_img(data_filenames[index])
@@ -56,6 +58,8 @@ class LOLv2DatasetFromFolder(data.Dataset):
         folder2= self.data_dir+'/Normal'
         data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
         data_filenames2 = [join(folder2, x) for x in listdir(folder2) if is_image_file(x)]
+        data_filenames.sort()
+        data_filenames2.sort()
         
         im1 = load_img(data_filenames[index])
         im2 = load_img(data_filenames2[index])
@@ -90,6 +94,8 @@ class LOLv2SynDatasetFromFolder(data.Dataset):
         folder2= self.data_dir+'/Normal'
         data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
         data_filenames2 = [join(folder2, x) for x in listdir(folder2) if is_image_file(x)]
+        data_filenames.sort()
+        data_filenames2.sort()
 
 
         im1 = load_img(data_filenames[index])
@@ -113,4 +119,3 @@ class LOLv2SynDatasetFromFolder(data.Dataset):
 
 
     
-
