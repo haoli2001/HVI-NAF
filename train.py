@@ -59,10 +59,14 @@ def setup_logger(run_dir):
 
 
 def init_run(opt):
-    run_stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = f"{opt.dataset}_crop{opt.cropSize}_{run_stamp}"
-    run_dir = os.path.join("logs", run_name)
-    os.makedirs(run_dir, exist_ok=False)
+    if opt.resume_dir:
+        run_dir = opt.resume_dir
+        os.makedirs(run_dir, exist_ok=True)
+    else:
+        run_stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        run_name = f"{opt.dataset}_crop{opt.cropSize}_{run_stamp}"
+        run_dir = os.path.join("logs", run_name)
+        os.makedirs(run_dir, exist_ok=False)
 
     opt.run_dir = run_dir
     opt.weights_dir = os.path.join(run_dir, "weights")
@@ -74,9 +78,10 @@ def init_run(opt):
     os.makedirs(opt.val_folder, exist_ok=True)
 
     params_path = os.path.join(run_dir, "params.json")
-    with open(params_path, "w") as f:
-        payload = {"args": vars(opt), "model": MODEL_CONFIG}
-        json.dump(payload, f, indent=2)
+    if not opt.resume_dir or not os.path.exists(params_path):
+        with open(params_path, "w") as f:
+            payload = {"args": vars(opt), "model": MODEL_CONFIG}
+            json.dump(payload, f, indent=2)
 
     return run_dir
 
@@ -305,7 +310,7 @@ if __name__ == "__main__":
     lpips = []
     start_epoch = opt.start_epoch if opt.start_epoch > 0 else 0
 
-    for epoch in range(start_epoch + 1, opt.nEpochs + start_epoch + 1):
+    for epoch in range(start_epoch + 1, opt.nEpochs + 1):
         epoch_loss, pic_num = train_epoch(
             model, training_data_loader, optimizer, opt, logger, epoch, L1_loss, P_loss, E_loss, D_loss
         )
