@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from net.hvi_dual_naf import HVIDualNAF
+from net.hvi_naf_lca import HVINAF_LCA
 from data.options import option
 from measure import metrics
 from eval import eval
@@ -21,11 +22,29 @@ from data.scheduler import *
 
 
 MODEL_CONFIG = {
-    "width": 32,
-    "enc_blk_nums": [2, 2, 4, 8],
-    "middle_blk_num": 12,
-    "dec_blk_nums": [2, 2, 2, 2],
+    "dual_naf": {
+        "width": 32,
+        "enc_blk_nums": [2, 2, 4, 8],
+        "middle_blk_num": 12,
+        "dec_blk_nums": [2, 2, 2, 2],
+    },
+    "naf_lca": {
+        "width": 32,
+        "enc_blk_nums": [2, 2, 4, 8],
+        "middle_blk_num": 12,
+        "dec_blk_nums": [2, 2, 2, 2],
+    },
 }
+
+
+def get_model_class(model_name):
+    """根据模型名称返回对应的模型类。"""
+    if model_name == "dual_naf":
+        return HVIDualNAF
+    elif model_name == "naf_lca":
+        return HVINAF_LCA
+    else:
+        raise ValueError(f"Unknown model: {model_name}")
 
 
 def seed_torch():
@@ -64,7 +83,7 @@ def init_run(opt):
         os.makedirs(run_dir, exist_ok=True)
     else:
         run_stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        run_name = f"{opt.dataset}_crop{opt.cropSize}_{run_stamp}"
+        run_name = f"{opt.dataset}_{opt.model}_crop{opt.cropSize}_{run_stamp}"
         run_dir = os.path.join("logs", run_name)
         os.makedirs(run_dir, exist_ok=False)
 
@@ -79,8 +98,9 @@ def init_run(opt):
 
     params_path = os.path.join(run_dir, "params.json")
     if not opt.resume_dir or not os.path.exists(params_path):
+        model_cfg = MODEL_CONFIG.get(opt.model, MODEL_CONFIG["dual_naf"])
+        payload = {"args": vars(opt), "model": model_cfg}
         with open(params_path, "w") as f:
-            payload = {"args": vars(opt), "model": MODEL_CONFIG}
             json.dump(payload, f, indent=2)
 
     return run_dir
@@ -223,7 +243,15 @@ def load_datasets(opt):
 def build_model(opt):
     logger = logging.getLogger("train")
     logger.info("===> Building model")
-    model = HVIDualNAF(**MODEL_CONFIG).cuda()
+
+    model_class = get_model_class(opt.model)
+    model_cfg = MODEL_CONFIG.get(opt.model, MODEL_CONFIG["dual_naf"])
+    model = model_class(**model_cfg).cuda()
+
+    # 打印模型参数量
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.info(f"Model: {opt.model}, Parameters: {num_params / 1e6:.2f}M")
+
     if opt.start_epoch > 0:
         pth = os.path.join(opt.weights_dir, "train", f"epoch_{opt.start_epoch}.pth")
         model.load_state_dict(torch.load(pth, map_location=lambda storage, loc: storage))
@@ -295,9 +323,10 @@ if __name__ == "__main__":
     run_dir = init_run(opt)
     logger = setup_logger(run_dir)
 
-    logger.info("===> Starting HVI-Dual-NAF training")
+    logger.info("===> Starting HVI-NAF training")
+    logger.info(f"Model: {opt.model}")
     logger.info(f"Run dir: {run_dir}")
-    logger.info(f"Model config: {MODEL_CONFIG}")
+    logger.info(f"Model config: {MODEL_CONFIG.get(opt.model, MODEL_CONFIG['dual_naf'])}")
 
     train_init(opt)
     training_data_loader, testing_data_loader = load_datasets(opt)

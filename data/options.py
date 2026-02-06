@@ -83,11 +83,16 @@ def option():
     choices=['lol_v1',
              'lolv2_real',
              'lolv2_syn',
-             'lol_blur', 
+             'lol_blur',
              'SID',
              'SICE_mix',
              'SICE_grad',
              'fivek'],
     help='Select the dataset to train on (default: %(default)s)')
+
+    # choose which model to use
+    parser.add_argument('--model', type=str, default='dual_naf',
+    choices=['dual_naf', 'naf_lca'],
+    help='Select model architecture: dual_naf (simple gated), naf_lca (with CIDNet LCA)')
 
     return parser
